@@ -19,4 +19,10 @@ jarvis-dir() {
 	cd $dir
 }
 
+init() {
+	[ -e '.jarvis' ] &&
+	error 'Initialization failed.' '".jarvis" already exists.'
+	mkdir -p .jarvis
+}
+
 $@
