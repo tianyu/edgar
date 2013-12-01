@@ -1,1 +1,22 @@
 #!/usr/bin/env bash
+
+error() {
+	echo -n "ERROR: "
+	for msg in "$@"; do echo -e "$msg"; done
+	exit 1
+}
+
+jarvis-dir() {
+	dir=$(pwd)
+	cd -P .
+	while [ ! -d '.jarvis' ]; do
+		cd ..
+		[ $(pwd) != '/' ] ||
+		error 'JARVIS has not been initialized.' \
+			'You can initialize JARVIS by running "'$0' init".'
+	done &&
+	echo $(pwd)'/.jarvis'
+	cd $dir
+}
+
+$@
