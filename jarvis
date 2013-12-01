@@ -19,10 +19,24 @@ jarvis-dir() {
 	cd $dir
 }
 
+tasks-dir() {
+	echo $(jarvis-dir)/tasks
+}
+
 init() {
 	[ -e '.jarvis' ] &&
 	error 'Initialization failed.' '".jarvis" already exists.'
-	mkdir -p .jarvis
+	mkdir -p .jarvis/tasks
+}
+
+perform() {
+	[ $1 ] ||
+		error 'No task to do.' 'Usage: $0 perform <task> [arguments]...'
+	task=$(tasks-dir)/$1
+	[ -x "$task" ] ||
+	error 'JARVIS does not know how to "'$1'".'
+	shift
+	$task $@
 }
 
 $@
