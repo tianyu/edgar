@@ -54,7 +54,7 @@ perform() {
 	shift $((OPTIND-1))
 	local task=$1
 	shift
-	db "INSERT INTO tasks(name, task, args) VALUES('$name', '$task', '$@')"
+	db "INSERT INTO tasks(name, task, args) VALUES('$name', '$task', '$*')"
 }
 
 case "$1" in
