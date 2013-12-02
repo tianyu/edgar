@@ -25,7 +25,7 @@ tasks-dir() {
 
 db() {
 	[ "$1" ] || error 'SQL not specified!'
-	sqlite3 $(jarvis-dir)/jarvis.db "$1"
+	sqlite3 $(jarvis-dir)/jarvis.db "$@"
 }
 
 init() {
@@ -57,10 +57,29 @@ perform() {
 	db "INSERT INTO tasks(name, task, args) VALUES('$name', '$task', '$*')"
 }
 
+execute-task() {
+	read id || return 1
+	read name &&
+	read task &&
+	read args ||
+		error 'Could not read task!'
+	id=$(echo ${id##* =})
+	name=$(echo ${name##* =})
+	task=$(echo ${task##* =})
+	args=$(echo ${args##* =})
+	echo "Execute #$id ($name) $task $args"
+	db 'DELETE FROM tasks WHERE id = '$id
+}
+
+execute() {
+	db -line 'SELECT * FROM tasks WHERE id = (SELECT MIN(id) FROM tasks)' | execute-task
+}
+
 case "$1" in
 '') error 'No task to do.' \
 		'Usage: '$0' (init | which | <task>) [arguments]...' ;;
 init) init ;;
 which) which-task $2 ;;
+__exec) execute ;;
 *) perform $@ ;;
 esac
