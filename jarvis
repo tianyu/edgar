@@ -57,22 +57,14 @@ perform() {
 	db "INSERT INTO tasks(name, task, args) VALUES('$name', '$task', '$*')"
 }
 
-execute-task() {
-	read id || return 1
-	read name &&
-	read task &&
-	read args ||
-		error 'Could not read task!'
-	id=$(echo ${id##* =})
-	name=$(echo ${name##* =})
-	task=$(echo ${task##* =})
-	args=$(echo ${args##* =})
-	echo "Execute #$id ($name) $task $args"
-	db 'DELETE FROM tasks WHERE id = '$id
-}
-
 execute() {
-	db -line 'SELECT * FROM tasks WHERE id = (SELECT MIN(id) FROM tasks)' | execute-task
+	while true; do
+		task=$(db -line 'SELECT * FROM tasks WHERE id = (SELECT MIN(id) FROM tasks)' | sed 's/ //g')
+		[ "$task" ] || break;
+		for var in $task; do eval "local $var"; done;
+		$(which-task $task) $args
+		db "DELETE FROM tasks WHERE id = $id"
+	done
 }
 
 case "$1" in
