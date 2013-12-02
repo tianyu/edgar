@@ -12,8 +12,8 @@ jarvis-dir() {
 	while [ ! -d '.jarvis' ]; do
 		cd ..
 		[ $(pwd) != '/' ] ||
-		error 'JARVIS has not been initialized.' \
-			'You can initialize JARVIS by running "'$0' init".'
+			error 'JARVIS has not been initialized.' \
+				'You can initialize JARVIS by running "'$0' init".'
 	done &&
 	echo $(pwd)'/.jarvis'
 	cd $dir
@@ -30,13 +30,16 @@ init() {
 }
 
 perform() {
-	[ $1 ] ||
-		error 'No task to do.' 'Usage: $0 perform <task> [arguments]...'
 	task=$(tasks-dir)/$1
 	[ -x "$task" ] ||
-	error 'JARVIS does not know how to "'$1'".'
+		error 'JARVIS does not know how to "'$1'".'
 	shift
 	$task $@
 }
 
-$@
+case "$1" in
+'') error 'No task to do.' \
+		'Usage: '$0' (init | <task>) [arguments]...' ;;
+init) init ;;
+*) perform $@ ;;
+esac
