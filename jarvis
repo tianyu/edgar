@@ -23,10 +23,16 @@ tasks-dir() {
 	echo $(jarvis-dir)/tasks
 }
 
+db() {
+	[ "$1" ] || error 'SQL not specified!'
+	sqlite3 $(jarvis-dir)/jarvis.db "$1"
+}
+
 init() {
 	[ -e '.jarvis' ] &&
 	error 'Initialization failed.' '".jarvis" already exists.'
 	mkdir -p .jarvis/tasks
+	db "CREATE TABLE tasks(id INTEGER PRIMARY KEY, name, task, args)"
 }
 
 which-task() {
@@ -38,17 +44,17 @@ which-task() {
 }
 
 perform() {
-	while getopts :I: opt; do
+	while getopts :n: opt; do
 		case $opt in
-		I) local id=$OPTARG ;;
+		n) local name=$OPTARG ;;
 		\?) error 'Illegal option: -'$OPTARG \
-				'Usage: '$0' [-I <id>] <task> [arguments]...' ;;
+				'Usage: '$0' [-n <name>] <task> [arguments]...' ;;
 		esac
 	done
 	shift $((OPTIND-1))
 	local task=$1
 	shift
-	$(which-task $task) $@
+	db "INSERT INTO tasks(name, task, args) VALUES('$name', '$task', '$@')"
 }
 
 case "$1" in
