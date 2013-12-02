@@ -38,6 +38,14 @@ which-task() {
 }
 
 perform() {
+	while getopts :I: opt; do
+		case $opt in
+		I) local id=$OPTARG ;;
+		\?) error 'Illegal option: -'$OPTARG \
+				'Usage: '$0' [-I <id>] <task> [arguments]...' ;;
+		esac
+	done
+	shift $((OPTIND-1))
 	local task=$1
 	shift
 	$(which-task $task) $@
