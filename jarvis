@@ -7,7 +7,7 @@ error() {
 }
 
 jarvis-dir() {
-	dir=$(pwd)
+	local dir=$(pwd)
 	cd -P .
 	while [ ! -d '.jarvis' ]; do
 		cd ..
@@ -29,17 +29,24 @@ init() {
 	mkdir -p .jarvis/tasks
 }
 
-perform() {
-	task=$(tasks-dir)/$1
+which-task() {
+	[ $1 ] || error 'Please specify a task.' 'Usage: '$0' which <task>'
+	local task=$(tasks-dir)/$1
 	[ -x "$task" ] ||
 		error 'JARVIS does not know how to "'$1'".'
+	echo $task
+}
+
+perform() {
+	local task=$1
 	shift
-	$task $@
+	$(which-task $task) $@
 }
 
 case "$1" in
 '') error 'No task to do.' \
-		'Usage: '$0' (init | <task>) [arguments]...' ;;
+		'Usage: '$0' (init | which | <task>) [arguments]...' ;;
 init) init ;;
+which) which-task $2 ;;
 *) perform $@ ;;
 esac
