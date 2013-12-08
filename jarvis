@@ -51,7 +51,6 @@ execute() {
 		local group=$(db 'SELECT task_group FROM tasks WHERE id='$id) || error 'Could not get task group.'
 		[ $group ] && id=$(db "SELECT MAX(id) FROM tasks WHERE task_group='$group'")
 		local cmd=$(db 'SELECT cmd FROM tasks where id='$id) || error 'Could not get command.'
-		echo "Execute #$id ($group) $cmd"
 
 		eval $cmd
 
