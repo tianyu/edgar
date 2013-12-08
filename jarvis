@@ -22,7 +22,7 @@ jarvis-dir() {
 db() {
 	[ "$1" ] || error 'SQL not specified!'
 	dbfile=$(jarvis-dir)/jarvis.db || exit 1
-	sqlite3 "$dbfile" "$@"
+	sqlite3 "$dbfile" "$@" || return 1
 }
 
 init() {
@@ -44,13 +44,15 @@ perform() {
 	db "INSERT INTO tasks(task_group, cmd) VALUES('$group', '$*')"
 }
 
-execute-task() {
-	read id group cmd || error 'Could not read task'
-	echo "Execute #$id ($group) $cmd"
-}
-
 execute() {
-	db -line 'SELECT * FROM tasks WHERE id = (SELECT MIN(id) FROM tasks)' | execute-task
+	while true; do
+		local id=$(db 'SELECT MIN(id) FROM tasks') || error 'Could not get task id.'
+		[ $id ] || return
+		local group=$(db 'SELECT task_group FROM tasks WHERE id='$id) || error 'Could not get task group.'
+		local cmd=$(db 'SELECT cmd FROM tasks where id='$id) || error 'Could not get command.'
+		echo "Execute #$id ($group) $cmd"
+		db 'DELETE FROM tasks WHERE id='$id || error 'Could not delete task #'$id'.'
+	done
 }
 
 case "$1" in
