@@ -49,9 +49,19 @@ execute() {
 		local id=$(db 'SELECT MIN(id) FROM tasks') || error 'Could not get task id.'
 		[ $id ] || return
 		local group=$(db 'SELECT task_group FROM tasks WHERE id='$id) || error 'Could not get task group.'
+		[ $group ] && id=$(db "SELECT MAX(id) FROM tasks WHERE task_group='$group'")
 		local cmd=$(db 'SELECT cmd FROM tasks where id='$id) || error 'Could not get command.'
 		echo "Execute #$id ($group) $cmd"
-		db 'DELETE FROM tasks WHERE id='$id || error 'Could not delete task #'$id'.'
+
+		eval $cmd
+
+		if [ $group ]; then
+			db "DELETE FROM tasks WHERE task_group='$group' AND id<=$id" ||
+				error "Could not delete old tasks from group $group"
+		else
+			db 'DELETE FROM tasks WHERE id='$id ||
+				error 'Could not delete task #'$id'.'
+		fi
 	done
 }
 
