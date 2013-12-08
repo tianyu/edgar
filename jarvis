@@ -2,7 +2,7 @@
 
 error() {
 	echo -n "ERROR: "
-	for msg in "$@"; do echo -e "$msg"; done
+	for msg in "$@"; do echo -e "$msg" >&2; done
 	exit 1
 }
 
@@ -19,59 +19,44 @@ jarvis-dir() {
 	cd $dir
 }
 
-tasks-dir() {
-	echo $(jarvis-dir)/tasks
-}
-
 db() {
 	[ "$1" ] || error 'SQL not specified!'
-	sqlite3 $(jarvis-dir)/jarvis.db "$@"
+	dbfile=$(jarvis-dir)/jarvis.db || exit 1
+	sqlite3 "$dbfile" "$@"
 }
 
 init() {
 	[ -e '.jarvis' ] &&
-	error 'Initialization failed.' '".jarvis" already exists.'
-	mkdir -p .jarvis/tasks
-	db "CREATE TABLE tasks(id INTEGER PRIMARY KEY, name, task, args)"
-}
-
-which-task() {
-	[ $1 ] || error 'Please specify a task.' 'Usage: '$0' which <task>'
-	local task=$(tasks-dir)/$1
-	[ -x "$task" ] ||
-		error 'JARVIS does not know how to "'$1'".'
-	echo $task
+		error 'Initialization failed.' '".jarvis" already exists.'
+	mkdir -p .jarvis
+	db "CREATE TABLE tasks(id INTEGER PRIMARY KEY, task_group, cmd)"
 }
 
 perform() {
-	while getopts :n: opt; do
+	while getopts :g: opt; do
 		case $opt in
-		n) local name=$OPTARG ;;
+		g) local group=$OPTARG ;;
 		\?) error 'Illegal option: -'$OPTARG \
-				'Usage: '$0' [-n <name>] <task> [arguments]...' ;;
+				'Usage: '$0' [-g <group>] <cmd> [arguments]...' ;;
 		esac
 	done
 	shift $((OPTIND-1))
-	local task=$1
-	shift
-	db "INSERT INTO tasks(name, task, args) VALUES('$name', '$task', '$*')"
+	db "INSERT INTO tasks(task_group, cmd) VALUES('$group', '$*')"
+}
+
+execute-task() {
+	read id group cmd || error 'Could not read task'
+	echo "Execute #$id ($group) $cmd"
 }
 
 execute() {
-	while true; do
-		task=$(db -line 'SELECT * FROM tasks WHERE id = (SELECT MIN(id) FROM tasks)' | sed 's/ //g')
-		[ "$task" ] || break;
-		for var in $task; do eval "local $var"; done;
-		$(which-task $task) $args
-		db "DELETE FROM tasks WHERE id = $id"
-	done
+	db -line 'SELECT * FROM tasks WHERE id = (SELECT MIN(id) FROM tasks)' | execute-task
 }
 
 case "$1" in
 '') error 'No task to do.' \
 		'Usage: '$0' (init | which | <task>) [arguments]...' ;;
 init) init ;;
-which) which-task $2 ;;
 __exec) execute ;;
 *) perform $@ ;;
 esac
