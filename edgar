@@ -6,29 +6,29 @@ error() {
 	exit 1
 }
 
-jarvis-dir() {
+root-dir() {
 	local dir=$(pwd)
 	cd -P .
-	while [ ! -d '.jarvis' ]; do
+	while [ ! -d '.edgar' ]; do
 		cd ..
 		[ $(pwd) != '/' ] ||
-			error 'JARVIS has not been initialized.' \
-				'You can initialize JARVIS by running "'$0' init".'
+			error 'Edgar has not been initialized.' \
+				'You can initialize Edgar by running "'$0' init".'
 	done &&
-	echo $(pwd)'/.jarvis'
+	echo $(pwd)'/.edgar'
 	cd $dir
 }
 
 db() {
 	[ "$1" ] || error 'SQL not specified!'
-	dbfile=$(jarvis-dir)/jarvis.db || exit 1
+	dbfile=$(root-dir)/db || exit 1
 	sqlite3 "$dbfile" "$@" || return 1
 }
 
 init() {
-	[ -e '.jarvis' ] &&
-		error 'Initialization failed.' '".jarvis" already exists.'
-	mkdir -p .jarvis
+	[ -e '.edgar' ] &&
+		error 'Initialization failed.' '".edgar" already exists.'
+	mkdir -p .edgar
 	db "CREATE TABLE tasks(id INTEGER PRIMARY KEY, task_group, cmd)"
 }
 
@@ -81,7 +81,7 @@ execute() {
 
 case "$1" in
 '') error 'No task to do.' \
-		'Usage: '$0' (init | which | <task>) [arguments]...' ;;
+		'Usage: '$0' (init | <task>) [arguments]...' ;;
 init) init ;;
 *) perform $@ ;;
 esac
