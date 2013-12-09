@@ -42,12 +42,25 @@ perform() {
 	done
 	shift $((OPTIND-1))
 	db "INSERT INTO tasks(task_group, cmd) VALUES('$group', '$*')"
+	execute &
+}
+
+lock() {
+	db 'CREATE TABLE lock(pid INTEGER PRIMARY KEY)' 2> /dev/null ||
+		return 1
+	db "INSERT INTO lock(pid) VALUES($$)"
+}
+
+unlock() {
+	db 'DROP TABLE lock' || error 'Unable to unlock.'
 }
 
 execute() {
+	lock || return 0
+
 	while true; do
 		local id=$(db 'SELECT MIN(id) FROM tasks') || error 'Could not get task id.'
-		[ $id ] || return
+		[ $id ] || break
 		local group=$(db 'SELECT task_group FROM tasks WHERE id='$id) || error 'Could not get task group.'
 		[ $group ] && id=$(db "SELECT MAX(id) FROM tasks WHERE task_group='$group'")
 		local cmd=$(db 'SELECT cmd FROM tasks where id='$id) || error 'Could not get command.'
@@ -62,12 +75,13 @@ execute() {
 				error 'Could not delete task #'$id'.'
 		fi
 	done
+
+	unlock
 }
 
 case "$1" in
 '') error 'No task to do.' \
 		'Usage: '$0' (init | which | <task>) [arguments]...' ;;
 init) init ;;
-__exec) execute ;;
 *) perform $@ ;;
 esac
